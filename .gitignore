@@ -1,0 +1,27 @@
+# secrets
+.env
+.env.*
+!.env.example
+PLAN.md
+
+# python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# node / frontend
+node_modules/
+dist/
+*.local
+
+# tooling
+.agents/
+.DS_Store
+Thumbs.db
+
+# runtime
+*.log
