@@ -45,3 +45,6 @@ class GraphState(TypedDict, total=False):
 
     # 比价分析
     price_analysis: dict[str, dict]     # goods_id -> {trend, current_percentile, is_good_price}
+
+    # 组合方案（M2，optimizer 输出）
+    combos: list[list]  # list[list[ScoredProduct]]，每套方案一组商品

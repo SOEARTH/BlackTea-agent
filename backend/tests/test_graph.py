@@ -1,9 +1,14 @@
-"""LangGraph 端到端测试：mock LLM 和 MCP 工具，验证 graph 流转。
+﻿"""LangGraph 端到端测试：mock LLM 和 MCP 工具，验证 graph 流转。
 
 覆盖三条关键路径：
 1. 澄清提问 interrupt 路径（信息不足时反问用户）
 2. 完整流程：澄清 -> 搜索 -> 比价 -> 口碑 -> 打分 -> 反思 -> 报告
 3. 反思打回路径（超预算时打回重检）
+
+M2 更新：
+- reflect_node 改为 async（LLM 校验硬约束），测试用 await
+- 打分带动态权重和 excluded 过滤
+- 新增 LLM mock 覆盖硬约束校验路径
 """
 from decimal import Decimal
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -71,6 +76,7 @@ def build_graph_initial_state():
         "iteration": 0,
         "reputation_scores": {},
         "price_analysis": {},
+        "combos": [],
     }
 
 
@@ -110,8 +116,8 @@ async def test_full_pipeline_mock():
     # 总分应该按降序排列
     assert scored[0].total >= scored[1].total >= scored[2].total
 
-    # 测试反思节点（全部在预算内，应该通过）
-    reflected = reflect_node(scored_state)
+    # 测试反思节点（全部在预算内，应该通过）—— M2 reflect_node 是 async
+    reflected = await reflect_node(scored_state)
     assert reflected.get("report") is not None
     assert reflected["next_agent"] == "END"
     assert len(reflected["report"].recommendations) > 0
@@ -134,17 +140,76 @@ async def test_reflect_rejects_over_budget():
     state = {**build_graph_initial_state(), "requirement": req, "products": products}
     scored = scoring_node(state)
 
-    reflected = reflect_node(scored_state_for_test(scored, req))
+    reflected = await reflect_node(scored_state_for_test(scored, req))
     assert reflected["next_agent"] == "search"
     assert len(reflected["reflection_notes"]) > 0
     # 超预算商品被过滤
     assert all(float(s.product.price) <= 100 for s in reflected["scored_products"])
 
 
+# ---- 路径 4: LLM 硬约束校验 ----
+
+@pytest.mark.asyncio
+async def test_reflect_llm_constraint_check():
+    """反思节点用 LLM 校验 must_have 硬约束。"""
+    from app.agents.scoring import scoring_node
+    from app.agents.reflect import reflect_node
+
+    products = [
+        _make_product("001", "蓝牙耳机A 续航20小时", "99"),
+        _make_product("002", "蓝牙耳机B 续航8小时", "79"),
+    ]
+    req = ShoppingRequirement(
+        category="蓝牙耳机", budget_max=Decimal("100"),
+        must_have=["续航>20h"],
+    )
+
+    state = {**build_graph_initial_state(), "requirement": req, "products": products}
+    scored = scoring_node(state)
+    scored["requirement"] = req
+
+    # mock LLM 返回：商品 2 不满足约束
+    mock_llm = MagicMock()
+    mock_llm.invoke.return_value = MagicMock(
+        content='{"results": [{"index":1,"satisfied":true,"reason":"续航20h满足"}, {"index":2,"satisfied":false,"reason":"续航8h不满足>20h"}]}'
+    )
+
+    with patch("app.agents.reflect.get_llm", return_value=mock_llm):
+        reflected = await reflect_node(scored)
+    # 硬约束不满足应触发打回
+    assert reflected["next_agent"] == "search"
+    note_text = "; ".join(reflected["reflection_notes"])
+    assert "续航" in note_text or "约束" in note_text
+
+
 def scored_state_for_test(scored_state, req):
     """复制 scored_state 并补充 req。"""
     scored_state["requirement"] = req
     return scored_state
+
+
+# ---- 路径 5: 组合场景端到端 ----
+
+def test_combo_pipeline():
+    """组合场景：打分 + 背包优化生成多套方案。"""
+    from app.agents.scoring import scoring_node
+
+    products = [
+        _make_product("001", "户外帐篷防雨", "199", "259", sales=1000),
+        _make_product("002", "帐篷Lite", "129", "189", sales=500),
+        _make_product("003", "睡袋加厚", "99", "139", sales=800),
+        _make_product("004", "睡袋薄款", "59", "89", sales=300),
+        _make_product("005", "便携炉具", "79", "109", sales=600),
+    ]
+    req = ShoppingRequirement(
+        category="露营装备", budget_max=Decimal("400"),
+        combo=True, slots=["帐篷", "睡袋", "炉具"],
+    )
+
+    state = {**build_graph_initial_state(), "requirement": req, "products": products}
+    scored_state = scoring_node(state)
+    assert len(scored_state["combos"]) >= 1
+    assert len(scored_state["combos"][0]) == 3
 
 
 # ---- 图编译测试 ----
