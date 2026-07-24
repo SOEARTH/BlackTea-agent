@@ -1,0 +1,37 @@
+{
+  "data": [
+    {
+      "goodsId": "589284195570",
+      "goodsSign": "test_goods_sign",
+      "title": "西维里男士睡衣夏季韩版真丝短袖丝绸薄款宽松青年冰丝家居服套装",
+      "dtitle": "夏季睡衣男冰丝短袖丝绸家居服套装",
+      "desc": "宽松舒适，难以磨损，典雅而优美",
+      "cid": 10,
+      "subcid": [
+        86369
+      ],
+      "tbcid": 50012772,
+      "mainPic": "//img.alicdn.com/imgextra/test.jpg",
+      "marketingMainPic": "https://sr.ffquan.com/super_pic/test.jpg",
+      "originalPrice": 38.5,
+      "actualPrice": 28.5,
+      "discounts": 0.74,
+      "commissionRate": 20,
+      "couponPrice": 10,
+      "couponConditions": "38",
+      "monthSales": 1050,
+      "dailySales": 200,
+      "shopType": 1,
+      "shopName": "西维里旗舰店",
+      "brandName": "西维里",
+      "descScore": 4.8,
+      "dsrScore": 4.8,
+      "shipScore": 4.8,
+      "serviceScore": 4.8,
+      "itemLink": "https://detail.tmall.com/item.htm?id=589284195570",
+      "couponLink": "https://uland.taobao.com/qu/detail?test",
+      "freeshipRemoteDistrict": 1,
+      "activityType": 1
+    }
+  ]
+}

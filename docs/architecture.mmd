@@ -1,0 +1,41 @@
+```mermaid
+---
+config:
+  flowchart:
+    curve: linear
+---
+graph TD;
+    __start__([START])
+    clarify["需求澄清 Agent<br/>LLM 提取 + interrupt 反问"]
+    search["选品检索 Agent<br/>MCP 搜索 + 预算过滤<br/>异常降级→空候选"]
+    price["比价 Agent<br/>历史券后价趋势 + 分位<br/>单商品失败跳过"]
+    reputation["口碑分析 Agent<br/>M3 RAG / M1 店铺评分代理"]
+    scoring["打分与组合规划<br/>5 维加权打分矩阵"]
+    reflect["反思校验 Agent<br/>预算/好价/死循环检查<br/>MAX_ITERATIONS=3"]
+    supervisor["Supervisor<br/>路由控制"]
+    __end__([END])
+
+    __start__ --> clarify;
+    clarify -->|"信息不足 → interrupt 暂停"| clarify;
+    clarify -->|"用户回复 → Command(resume)"| clarify;
+    clarify -->|"信息充足"| search;
+    search --> price;
+    search --> reputation;
+    price --> scoring;
+    reputation --> scoring;
+    scoring --> reflect;
+    reflect -->|"通过"| supervisor;
+    reflect -->|"超预算/好价低 → 打回重检"| search;
+    supervisor --> __end__;
+
+    classDef agent fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#1b5e20;
+    classDef parallel fill:#fce4ec,stroke:#c62828,stroke-width:2px,color:#b71c1c;
+    classDef control fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#bf360c;
+    classDef fault fill:#fff9c4,stroke:#f57f17,stroke-width:2px,color:#f57f17,stroke-dasharray: 5 5;
+    classDef startend fill:#e3f2fd,stroke:#1565c0,stroke-width:2px;
+
+    class clarify,search,scoring,reflect agent;
+    class price,reputation parallel;
+    class supervisor control;
+    class __start__,__end__ startend;
+```

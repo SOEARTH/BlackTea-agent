@@ -1,0 +1,21 @@
+{
+  "data": {
+    "goodsId": "589284195570",
+    "title": "测试商品",
+    "originalPrice": 38.5,
+    "historicalPrice": [
+      {
+        "date": "2024-01-01 20:00:00",
+        "actualPrice": 29.9
+      },
+      {
+        "date": "2024-01-15 20:00:00",
+        "actualPrice": 25.5
+      },
+      {
+        "date": "2024-02-01 20:00:00",
+        "actualPrice": 28.5
+      }
+    ]
+  }
+}
