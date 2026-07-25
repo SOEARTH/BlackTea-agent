@@ -23,6 +23,10 @@ export const useChatStore = defineStore('chat', () => {
   const threadId = ref(null)
   // 是否正在流式加载
   const streaming = ref(false)
+  // 当前活跃 agent 节点（顶栏 meta 用）
+  const activeNode = ref('')
+  // 反思轮次（reflect 打回计数）
+  const iteration = ref(0)
 
   /**
    * 发送用户消息，启动 SSE 流。
@@ -34,6 +38,8 @@ export const useChatStore = defineStore('chat', () => {
     interrupt.value = null
     report.value = null
     agentTimeline.value = []
+    activeNode.value = ''
+    iteration.value = 0
     streaming.value = true
 
     // 加入用户消息
@@ -83,14 +89,16 @@ export const useChatStore = defineStore('chat', () => {
     switch (event) {
       case 'agent':
         // agent 节点执行完成
-        agentTimeline.value.push({
-          node: data.node,
-          message: data.message || '',
-          timestamp: Date.now(),
-        })
-        if (data.message) {
-          messages.value.push({ role: 'ai', content: data.message, node: data.node })
-        }
+      agentTimeline.value.push({
+        node: data.node,
+        message: data.message || '',
+        timestamp: Date.now(),
+      })
+      activeNode.value = data.node
+      if (typeof data.iteration === 'number') iteration.value = data.iteration
+      if (data.message) {
+        messages.value.push({ role: 'ai', content: data.message, node: data.node })
+      }
         break
 
       case 'interrupt':
@@ -125,6 +133,8 @@ export const useChatStore = defineStore('chat', () => {
     report,
     threadId,
     streaming,
+    activeNode,
+    iteration,
     sendMessage,
     resumeChat,
   }

@@ -1,0 +1,67 @@
+/* BlackTea design tokens. Warm-earth palette + tea-green accent.
+   Applied through CSS variables so all components share the same visual system. */
+
+:root {
+  /* ---- Brand ---- */
+  --bt-brand:        #C8553D;   /* red clay — primary actions, active states */
+  --bt-brand-hover:  #B04A35;
+  --bt-brand-soft:   rgba(200, 85, 61, 0.12);
+  --bt-tea:          #216B4F;   /* deep tea green — secondary / positive */
+  --bt-tea-soft:     rgba(33, 107, 79, 0.10);
+  --bt-amber:        #E8A33C;   /* amber — accent / node tags */
+  --bt-amber-soft:   rgba(232, 163, 60, 0.16);
+
+  /* ---- Neutrals (warm gray-bone) ---- */
+  --bt-canvas:       #F7F1EA;   /* page background */
+  --bt-surface:      #FFFFFF;   /* card / panel bg */
+  --bt-subtle:       #FBF8F3;   /* inset stream bg */
+  --bt-muted:        #EEE8DE;   /* divider tint */
+  --bt-border:       #E2DBCB;   /* default border */
+  --bt-border-soft:  #EFE9DC;
+
+  /* ---- Text ---- */
+  --bt-text:         #1E1E1E;
+  --bt-text-2:       #5C564F;
+  --bt-text-3:       #998F84;
+
+  /* ---- Status ---- */
+  --bt-pos:          #2E9050;   /* pass / done */
+  --bt-warn:         #C98F1B;   /* reflection note */
+  --bt-neg:          #C0392B;   /* over budget / reject */
+  --bt-info:         #2D73B8;   /* interrupt ask */
+
+  /* ---- Radius ---- */
+  --bt-r-sm: 6px;
+  --bt-r-md: 10px;
+  --bt-r-lg: 14px;
+  --bt-r-full: 9999px;
+
+  /* ---- Shadow ---- */
+  --bt-shadow-card: 0 1px 2px rgba(40, 30, 20, 0.04), 0 4px 16px rgba(40, 30, 20, 0.06);
+  --bt-shadow-pop:  0 8px 32px rgba(40, 30, 20, 0.16);
+
+  /* ---- Type ramp ---- */
+  --bt-fs-display: 18px;
+  --bt-fs-h2:       14px;
+  --bt-fs-body:     13px;
+  --bt-fs-caption:  12px;
+  --bt-fs-tag:     10px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  background: var(--bt-canvas);
+  color: var(--bt-text);
+  -webkit-font-smoothing: antialiased;
+  letter-spacing: 0;
+}
+
+#app { height: 100vh; }
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: var(--bt-border); border-radius: 8px; }
+::-webkit-scrollbar-thumb:hover { background: var(--bt-text-3); }
+::-webkit-scrollbar-track { background: transparent; }
