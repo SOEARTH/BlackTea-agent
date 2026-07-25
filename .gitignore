@@ -1,12 +1,13 @@
 # secrets
- .env
- .env.*
- !.env.example
- PLAN.md
- docs/
- 
- # python
- __pycache__/
+.env
+.env.*
+!.env.example
+PLAN.md
+docs/
+_debug.txt
+
+# python
+__pycache__/
 *.py[cod]
 .venv/
 venv/

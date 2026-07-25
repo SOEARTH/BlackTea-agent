@@ -109,7 +109,7 @@ async def test_full_pipeline_mock():
     }
 
     # 测试打分节点
-    scored_state = scoring_node(state)
+    scored_state = await scoring_node(state)
     scored = scored_state["scored_products"]
     assert len(scored) == 3
     assert scored[0].rank == 1
@@ -138,7 +138,7 @@ async def test_reflect_rejects_over_budget():
     req = ShoppingRequirement(category="蓝牙耳机", budget_max=Decimal("100"))
 
     state = {**build_graph_initial_state(), "requirement": req, "products": products}
-    scored = scoring_node(state)
+    scored = await scoring_node(state)
 
     reflected = await reflect_node(scored_state_for_test(scored, req))
     assert reflected["next_agent"] == "search"
@@ -165,7 +165,7 @@ async def test_reflect_llm_constraint_check():
     )
 
     state = {**build_graph_initial_state(), "requirement": req, "products": products}
-    scored = scoring_node(state)
+    scored = await scoring_node(state)
     scored["requirement"] = req
 
     # mock LLM 返回：商品 2 不满足约束
@@ -190,7 +190,8 @@ def scored_state_for_test(scored_state, req):
 
 # ---- 路径 5: 组合场景端到端 ----
 
-def test_combo_pipeline():
+@pytest.mark.asyncio
+async def test_combo_pipeline():
     """组合场景：打分 + 背包优化生成多套方案。"""
     from app.agents.scoring import scoring_node
 
@@ -207,7 +208,7 @@ def test_combo_pipeline():
     )
 
     state = {**build_graph_initial_state(), "requirement": req, "products": products}
-    scored_state = scoring_node(state)
+    scored_state = await scoring_node(state)
     assert len(scored_state["combos"]) >= 1
     assert len(scored_state["combos"][0]) == 3
 

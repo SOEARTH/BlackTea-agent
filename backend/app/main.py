@@ -1,10 +1,15 @@
-"""FastAPI 入口，M1 骨架。
+﻿"""FastAPI 入口。
 
-启动时通过 lifespan 初始化 PostgresSaver checkpointer 并编译 graph，
-挂到 app.state 供路由使用。
+启动时通过 lifespan 初始化 PostgresSaver checkpointer + 连接池 + Milvus collection，
+编译 graph 挂到 app.state 供路由使用。
+
+M3 新增：
+- 连接池（记忆系统读写 app.* 业务表）
+- Milvus collection 初始化（review_corpus / episodic_memory / product_pool）
 """
 from __future__ import annotations
 
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -12,8 +17,15 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.agents.graph import build_graph
 from app.config import settings
-from app.db.checkpointer import get_checkpointer, init_checkpointer
+from app.db.checkpointer import (
+    close_connection_pool,
+    get_checkpointer,
+    init_checkpointer,
+    init_connection_pool,
+)
 from app.routes.chat import router as chat_router
+
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -21,24 +33,39 @@ async def lifespan(app: FastAPI):
     """应用启动/关闭生命周期。
 
     启动：
-    1. 连接 PG，创建 AsyncPostgresSaver
-    2. 调用 setup() 建表 + 迁移（首次执行）
-    3. 编译带 checkpointer 的 graph 挂到 app.state.graph
+    1. 初始化 PG 连接池（记忆系统用）
+    2. 连接 PG，创建 AsyncPostgresSaver checkpointer
+    3. 调用 setup() 建表 + 迁移
+    4. 初始化 Milvus collection（M3，可选——失败不阻塞）
+    5. 编译带 checkpointer 的 graph 挂到 app.state.graph
 
-    关闭：async with 退出时自动释放 PG 连接。
+    关闭：关闭连接池，async with 退出时自动释放 PG checkpointer 连接。
     """
+    # 1. 先启动连接池（记忆系统用）
+    await init_connection_pool()
+
+    # 4. Milvus collection 初始化（失败不阻塞，降级为无记忆模式）
+    try:
+        from app.db.milvus.collections import init_collections
+        init_collections()
+        logger.info("Milvus collection 初始化完成")
+    except Exception as e:
+        logger.warning("Milvus 初始化失败，RAG/记忆功能降级: %s", e)
+
     if settings.database_url:
         async with get_checkpointer() as checkpointer:
             await init_checkpointer(checkpointer)
             app.state.graph = build_graph(checkpointer)
             yield
     else:
-        # 无 DB 配置时退化到无 checkpointer 模式
         app.state.graph = build_graph()
         yield
 
+    # 关闭连接池
+    await close_connection_pool()
 
-app = FastAPI(title="BlackTea", version="0.1.0", lifespan=lifespan)
+
+app = FastAPI(title="BlackTea", version="0.2.0", lifespan=lifespan)
 
 # CORS — Vue3 开发服务器（localhost:5173）跨域
 app.add_middleware(

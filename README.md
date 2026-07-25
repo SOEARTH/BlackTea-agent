@@ -76,7 +76,7 @@ graph TD;
 |---|---|---|
 | **M1 骨架** | ✅ 完成 | 大淘客 FastMCP server（5 工具）+ 归一化商品模型 + 数据模型 + 7 节点 LangGraph 图（fork-join 并行）+ interrupt 自环容错 + AsyncPostgresSaver checkpointer + FastAPI SSE 端点 + Vue3 对话流前端 |
 | **M2 决策** | ✅ 完成 | 打分矩阵动态权重调优 + excluded 过滤 + nice_to_have 软偏好匹配 + 组合优化（多槽位 0/1 背包 DP，top-3 方案）+ 反思升级（LLM 校验 must_have 硬约束）+ 决策报告前端卡片增强（Canvas 雷达图 + 打分明细表 + 组合方案对比） |
-| M3 深度 | 待做 | 口碑 RAG（aspect-based）+ 双层记忆 + Skill 装载 |
+| **M3 深度** | ✅ 完成 | 方面级口碑 RAG（Milvus review_corpus + aspect 聚合，DSR 兜底）+ 双层记忆（PG profile_facts 画像 + Milvus episodic_memory 情景记忆，scoring 前召回调权）+ Skill 渐进装载（品类 SKILL.md 注入 clarify）+ 12 篇口碑种子语料 |
 | M4 质量 | 待做 | LangSmith 评估回归 + LLM-as-judge + 架构图完善 |
 
 ## 快速启动
@@ -103,7 +103,7 @@ pip install -r requirements.txt
 # 启动基础设施（PG / Redis / Milvus）
 docker-compose up -d
 
-# 跑测试（29 个单元/集成测试）
+# 跑测试（40 个单元/集成测试）
 set PYTHONPATH=backend && python -m pytest backend/tests/ -v
 
 # 启动 FastAPI（自动初始化 PG checkpointer + 编译 graph）
@@ -142,12 +142,13 @@ backend/
       requirement.py       #   ShoppingRequirement 需求结构
       decision.py          #   AspectScore / ScoredProduct / DecisionReport
     agents/                # LangGraph 多智能体
-      state.py             #   GraphState TypedDict
-      clarify.py           #   需求澄清（interrupt 反问 + 自环容错）
+      state.py             #   GraphState TypedDict（含 user_id）
+      clarify.py           #   需求澄清（interrupt 反问 + 自环容错 + Skill 注入）
       search.py            #   选品检索（MCP 搜索 + 异常降级）
       price.py             #   比价（历史券后价趋势，并行，单品跳过）
-      reputation.py        #   口碑分析（M1 stub / M3 RAG，并行）
-      scoring.py           #   动态权重打分矩阵 + excluded/偏好过滤 + combo 调用
+      reputation.py        #   口碑分析（M3 RAG / M1 店铺评分代理，并行）
+      memory_integration.py #  记忆召回调权（画像 + 情景记忆 → 打分权重）
+      scoring.py           #   动态权重打分矩阵 + excluded/偏好过滤 + combo 调用（async）
       optimizer.py         #   组合优化（多槽位 0/1 背包 DP，top-3 方案）
       reflect.py           #   反思校验（async + LLM 硬约束 + 预算/好价/死循环）
       supervisor.py        #   路由控制
@@ -156,18 +157,28 @@ backend/
     adapters/dtk.py        # 大淘客原始响应 -> NormalizedProduct
     cache/redis.py         # Redis 缓存封装
     db/schema.sql          # PostgreSQL 业务表 DDL（app schema）
-    db/checkpointer.py     # AsyncPostgresSaver 生命周期管理
+    db/checkpointer.py     # AsyncPostgresSaver 生命周期 + AsyncConnectionPool
+    db/milvus/             #   向量层
+      client.py            #     MilvusClient 单例 + Ollama qwen3-embedding（4096 维）
+      collections.py       #     3 个 collection schema + IVF_FLAT/COSINE
+      rag.py               #     方面级口碑检索 + 聚合 + get_reputation_for_product
+      memory.py            #     情景记忆写入/召回 + PG profile_facts + 抽取流水线
+      seed_reviews.py      #     12 篇口碑种子语料入库
+    skills/                #   Skill 渐进装载
+      loader.py            #     detect_category / load_skill_prompt / enrich_requirement_prompt
+      categories/          #     audio/outdoor/digital/default SKILL.md
     routes/chat.py         # SSE 流式对话端点（/api/chat + /api/chat/resume）
   mcp_dtk/                 # 自建 FastMCP server（大淘客封装）
     client.py              #   签名 + API 调用 + fixture 兜底
     tools.py               #   5 个 MCP 工具函数
     server.py              #   FastMCP 注册
     __main__.py            #   python -m mcp_dtk 入口
-  tests/                   # 29 个单元/集成测试
+  tests/                   # 40 个单元/集成测试
     test_adapter_dtk.py    #   大淘客适配器（4）
     test_graph.py          #   LangGraph 端到端（5）
     test_mcp_tools.py      #   MCP 工具（8）
     test_optimizer.py      #   组合优化 + 动态权重（12）
+    test_m3.py             #   Skill + 记忆调权 + 口碑 RAG（11）
 frontend/                  # Vue3 前端
   src/
     main.js                # Vue 应用入口（Pinia + Element Plus）

@@ -18,16 +18,17 @@
       - redis_data:/data
 
   milvus-etcd:
-    image: quay.io/coreos/etcd:release-3.5
+    image: dhi.io/etcd:3-debian-dev
     environment:
+      - ALLOW_NONE_AUTHENTICATION=yes
       - ETCD_AUTO_COMPACTION_MODE=revision
       - ETCD_AUTO_COMPACTION_RETENTION=1000
       - ETCD_QUOTA_BACKEND_BYTES=4294967296
     volumes:
-      - etcd_data:/etcd
+      - etcd_data:/bitnami/etcd
 
   milvus-minio:
-    image: minio/minio:latest
+    image: minio/minio:RELEASE.2025-09-07T16-13-09Z-cpuv1
     environment:
       MINIO_ACCESS_KEY: minioadmin
       MINIO_SECRET_KEY: minioadmin

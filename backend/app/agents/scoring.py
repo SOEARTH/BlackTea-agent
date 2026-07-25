@@ -193,7 +193,7 @@ def _filter_excluded(
     return kept, removed_titles
 
 
-def scoring_node(state: GraphState) -> GraphState:
+async def scoring_node(state: GraphState) -> GraphState:
     """打分节点：动态权重打分 → 排序 → 组合优化（combo 场景）。"""
     products = state.get("products", [])
     price_analysis = state.get("price_analysis", {})
@@ -204,8 +204,12 @@ def scoring_node(state: GraphState) -> GraphState:
     products, removed = _filter_excluded(products, requirement)
     filter_msg = f"（已排除 {len(removed)} 个商品）" if removed else ""
 
-    # 2. 动态权重
+    # 2. 动态权重（含记忆调权）
     weights = _compute_dynamic_weights(requirement)
+    user_id = state.get("user_id")
+    if user_id:
+        from app.agents.memory_integration import apply_memory_weights
+        weights = await apply_memory_weights(weights, user_id, requirement)
     weight_desc = "、".join(f"{k}={v:.2f}" for k, v in weights.items())
 
     # 3. 逐商品打分

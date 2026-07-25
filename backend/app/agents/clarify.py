@@ -91,15 +91,18 @@ def clarify_node(state: GraphState) -> GraphState:
     check_text = check_response.content.strip()
 
     if check_text == "COMPLETE" or check_text.startswith("COMPLETE"):
-        # 信息充足，写入 state，推进到选品检索
+        # M3: skill
+        from app.skills.loader import enrich_requirement_prompt
+        skill_hint = enrich_requirement_prompt(requirement.category)
+        msg = f"需求已明确：{requirement.category}，预算 "
+        msg += f"{requirement.budget_max or '不限'} 元。正在为你检索商品..."
+        if skill_hint:
+            msg += f"（已加载{requirement.category}选购方法论）"
         return {
             **state,
             "requirement": requirement,
             "next_agent": "search",
-            "messages": [AIMessage(
-                content=f"需求已明确：{requirement.category}，预算 "
-                       f"{requirement.budget_max or '不限'} 元。正在为你检索商品..."
-            )],
+            "messages": [AIMessage(content=msg)],
         }
     else:
         # 信息不足，interrupt 反问用户
