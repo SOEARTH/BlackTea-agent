@@ -76,14 +76,14 @@ graph TD;
 |---|---|---|
 | **M1 骨架** | ✅ 完成 | 大淘客 FastMCP server（5 工具）+ 归一化商品模型 + 数据模型 + 7 节点 LangGraph 图（fork-join 并行）+ interrupt 自环容错 + AsyncPostgresSaver checkpointer + FastAPI SSE 端点 + Vue3 对话流前端 |
 | **M2 决策** | ✅ 完成 | 打分矩阵动态权重调优 + excluded 过滤 + nice_to_have 软偏好匹配 + 组合优化（多槽位 0/1 背包 DP，top-3 方案）+ 反思升级（LLM 校验 must_have 硬约束）+ 决策报告前端卡片增强（Canvas 雷达图 + 打分明细表 + 组合方案对比） |
-| **M3 深度** | ✅ 完成 | 方面级口碑 RAG（Milvus review_corpus + aspect 聚合，DSR 兜底）+ 双层记忆（PG profile_facts 画像 + Milvus episodic_memory 情景记忆，scoring 前召回调权）+ Skill 渐进装载（品类 SKILL.md 注入 clarify）+ 12 篇口碑种子语料 |
+| **M3 深度** | ✅ 未完成 | 方面级口碑 RAG（Milvus review_corpus + aspect 聚合，DSR 兜底）+ 双层记忆（PG profile_facts 画像 + Milvus episodic_memory 情景记忆，scoring 前召回调权）+ Skill 渐进装载（品类 SKILL.md 注入 clarify）+ 12 篇口碑种子语料 |
 | M4 质量 | 待做 | LangSmith 评估回归 + LLM-as-judge + 架构图完善 |
 
 ## 快速启动
 
 ### 前置
 
-- Python 3.12 
+- Python 3.12
 - Node.js 22+（前端 dev server）
 - Docker（PG / Redis / Milvus）
 
