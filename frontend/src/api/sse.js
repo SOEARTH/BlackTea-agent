@@ -35,7 +35,9 @@ export async function postSSE(url, body, onEvent) {
     buffer += decoder.decode(value, { stream: true })
 
     // SSE 帧以双换行分隔，每帧含 event: 和 data: 行
-    const frames = buffer.split('\n\n')
+    // 注意兼容 CRLF：sse-starlette 默认分隔符是 \r\n，若只按 \n\n 切，
+    // 整段流永远分不出帧，事件会被全部吞掉
+    const frames = buffer.split(/\r?\n\r?\n/)
     buffer = frames.pop() // 最后一段可能不完整，留着继续拼
 
     for (const frame of frames) {
@@ -61,16 +63,18 @@ export async function postSSE(url, body, onEvent) {
  */
 function parseSSEFrame(frame) {
   let eventType = 'message'
-  let dataStr = ''
+  const dataLines = []
 
-  for (const line of frame.split('\n')) {
+  for (const line of frame.split(/\r?\n/)) {
     if (line.startsWith('event:')) {
       eventType = line.slice(6).trim()
     } else if (line.startsWith('data:')) {
-      dataStr += line.slice(5).trim()
+      dataLines.push(line.slice(5).trim())
     }
   }
 
+  // 协议允许一个事件拆多行 data:，按换行拼接
+  const dataStr = dataLines.join('\n')
   if (!dataStr) return null
 
   try {

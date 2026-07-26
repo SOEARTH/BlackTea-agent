@@ -83,7 +83,7 @@ graph TD;
 
 ### 前置
 
-- Python 3.12 + conda 环境 `BlackTea`（`conda create -n BlackTea python=3.12`）
+- Python 3.12 
 - Node.js 22+（前端 dev server）
 - Docker（PG / Redis / Milvus）
 
@@ -107,10 +107,12 @@ docker-compose up -d
 set PYTHONPATH=backend && python -m pytest backend/tests/ -v
 
 # 启动 FastAPI（自动初始化 PG checkpointer + 编译 graph）
-set PYTHONPATH=backend && python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+set PYTHONPATH=backend && python backend/run.py
 ```
 
 后端启动后访问 `http://localhost:8000/health`，返回 `{"status":"ok","graph_ready":true}` 即就绪。
+
+> Windows 注意：必须用 `backend/run.py` 启动，而不是直接 `python -m uvicorn`。`run.py` 在导入 uvicorn 之前把 asyncio 事件循环策略切换为 `WindowsSelectorEventLoopPolicy`，否则 psycopg3 异步驱动无法在默认 ProactorEventLoop 上连接 Postgres（报 "Psycopg cannot use the 'ProactorEventLoop'..."）。Docker PG 映射到宿主机 **5433** 端口，避开本地原生 Postgres 对 5432 的占用。
 
 ### 3. 前端
 

@@ -86,7 +86,8 @@ async def get_price_trend(
     用于比价 agent 判断"现在是否好价"：当前价在历史分位的位置。
 
     Args:
-        goods_id: 大淘客在线商品 id
+        goods_id: 大淘客数字商品 id（搜索响应里的 id 字段，即 extra.dtk_id）；
+            注意不是 goodsId（加密在线 id），传错会返回 10006 无数据
     """
     raw = await dtk_client.request("price_trend", {"id": goods_id})
     return _adapter.parse_price_trend(raw)

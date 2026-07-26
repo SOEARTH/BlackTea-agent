@@ -5,9 +5,13 @@
 """
 from __future__ import annotations
 
+import logging
+
 from langchain_core.messages import AIMessage
 
 from app.agents.state import GraphState
+
+logger = logging.getLogger(__name__)
 
 
 async def price_node(state: GraphState) -> GraphState:
@@ -18,9 +22,13 @@ async def price_node(state: GraphState) -> GraphState:
     price_analysis: dict[str, dict] = {}
 
     for p in products[:10]:  # 只查前 10 个，控配额
+        # price-trend 接口要数字商品 id（extra.dtk_id），
+        # 不能用 goods_id（搜索返回的是加密在线 id，会查不到数据）
+        trend_id = (p.extra or {}).get("dtk_id") or p.goods_id
         try:
-            trend = await get_price_trend(p.goods_id)
+            trend = await get_price_trend(trend_id)
             if not trend:
+                logger.info("无历史价格数据 goods_id=%s dtk_id=%s", p.goods_id, trend_id)
                 continue
             prices = [float(t["price"]) for t in trend if t.get("price")]
             current = float(p.price)
@@ -36,7 +44,8 @@ async def price_node(state: GraphState) -> GraphState:
                 "current_percentile": percentile,
                 "is_good_price": is_good_price,
             }
-        except Exception:
+        except Exception as e:
+            logger.warning("价格趋势查询失败 goods_id=%s dtk_id=%s: %s", p.goods_id, trend_id, e)
             continue  # 单品查询失败不影响整体
 
     good_count = sum(1 for v in price_analysis.values() if v["is_good_price"])

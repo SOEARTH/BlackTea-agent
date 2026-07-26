@@ -23,11 +23,24 @@
           <div class="hero-rank">#{{ topRec.rank }}</div>
           <div class="hero-main">
             <div class="hero-top">
-              <div class="hero-title">{{ topRec.product.title }}</div>
-              <div class="hero-meta">
-                <span class="hero-price">¥{{ topRec.product.price }}</span>
-                <span class="hero-sep">·</span>
-                <span class="hero-total">综合 {{ topRec.total }}</span>
+              <a class="hero-img-wrap" :href="topRec.product.detail_url || undefined" target="_blank" rel="noopener">
+                <span class="img-ph"></span>
+                <img v-if="imgOf(topRec.product)" :src="imgOf(topRec.product)" class="hero-img"
+                     alt="" loading="lazy" referrerpolicy="no-referrer" @error="imgErr" />
+              </a>
+              <div class="hero-head">
+                <a class="hero-title link" :href="topRec.product.detail_url || undefined" target="_blank" rel="noopener">{{ topRec.product.title }}</a>
+                <div class="hero-meta">
+                  <span class="hero-price">¥{{ topRec.product.price }}</span>
+                  <span class="hero-sep">·</span>
+                  <span class="hero-total">综合 {{ topRec.total }}</span>
+                </div>
+                <div class="hero-links">
+                  <a v-if="topRec.product.detail_url" :href="topRec.product.detail_url"
+                     target="_blank" rel="noopener" class="lnk">查看商品</a>
+                  <a v-if="topRec.product.coupon_link" :href="topRec.product.coupon_link"
+                     target="_blank" rel="noopener" class="lnk accent">{{ couponLabel(topRec.product) }}</a>
+                </div>
               </div>
             </div>
             <div class="hero-grid">
@@ -46,15 +59,23 @@
           </div>
         </section>
 
-        <!-- Top 列表：#2 / #3 横向卡 + 打分条 -->
+        <!-- 候选列表：全部入选商品横向卡 + 打分条 -->
         <section v-if="recs.length > 1" class="runners">
+          <div class="sect-title">候选对比 · {{ recs.length }} 件</div>
           <div v-for="(item, i) in recs.slice(1)" :key="item.rank" class="runner-card">
             <div class="runner-rank">#{{ item.rank }}</div>
+            <a class="thumb" :href="item.product.detail_url || undefined" target="_blank" rel="noopener">
+              <span class="img-ph"></span>
+              <img v-if="imgOf(item.product)" :src="imgOf(item.product)" class="thumb-img"
+                   alt="" loading="lazy" referrerpolicy="no-referrer" @error="imgErr" />
+            </a>
             <div class="runner-body">
-              <div class="runner-title">{{ item.product.title }}</div>
+              <a class="runner-title link" :href="item.product.detail_url || undefined" target="_blank" rel="noopener">{{ item.product.title }}</a>
               <div class="runner-meta">
                 <span class="runner-price">¥{{ item.product.price }}</span>
                 <span class="runner-total">综合 {{ item.total }}</span>
+                <a v-if="item.product.coupon_link" :href="item.product.coupon_link"
+                   target="_blank" rel="noopener" class="lnk-mini accent">{{ couponLabel(item.product) }}</a>
               </div>
               <div class="bar-row">
                 <div v-for="(a, ai) in item.aspects" :key="ai"
@@ -89,7 +110,7 @@
               </div>
               <ul class="combo-list">
                 <li v-for="(sp, ci) in scheme" :key="ci">
-                  <span class="cb-slot">{{ sp.product.dtitle || sp.product.title }}</span>
+                  <a class="cb-slot link" :href="sp.product.detail_url || undefined" target="_blank" rel="noopener">{{ sp.product.dtitle || sp.product.title }}</a>
                   <span class="cb-price">¥{{ sp.product.price }}</span>
                 </li>
               </ul>
@@ -125,6 +146,25 @@ const aspectColor = (k) => ({
   brand:       "#7B5E3C",
 }[k] || "#998F84");
 const pctWidth = (score) => `${Math.max(0, Math.min(10, score)) * 10}%`;
+
+// ---- 商品图与链接 ----
+const imgOf = (p) => p?.main_image || p?.marketing_image || "";
+// 图片加载失败时隐藏 img，露出容器底色占位
+function imgErr(e) { e.target.style.display = "none"; }
+const fmtNum = (v) => {
+  const n = parseFloat(v);
+  if (!Number.isFinite(n)) return v ?? "";
+  return Number.isInteger(n) ? String(n) : n.toFixed(2);
+};
+// 券文案：有门槛显示"满38减10"，无门槛显示"减10"
+function couponLabel(p) {
+  const amt = parseFloat(p?.coupon_amount);
+  if (!Number.isFinite(amt) || amt <= 0) return "领券优惠";
+  const cond = parseFloat(p?.coupon_conditions);
+  return Number.isFinite(cond) && cond > 0
+    ? `满${fmtNum(cond)}减${fmtNum(amt)}`
+    : `减${fmtNum(amt)}`;
+}
 
 const recs = ref([]);
 const topRec = ref(null);
@@ -241,12 +281,43 @@ onMounted(async () => { syncReport(); await nextTick(); drawAll(); });
 .hero-card { display: flex; gap: 10px; border: 1px solid var(--bt-border); border-radius: var(--bt-r-lg); background: var(--bt-subtle); padding: 14px; box-shadow: var(--bt-shadow-card); }
 .hero-rank { font-size: 22px; font-weight: 800; color: var(--bt-brand); width: 28px; }
 .hero-main { flex: 1; min-width: 0; }
-.hero-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 10px; }
+.hero-top { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
+.hero-head { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
 .hero-title { font-size: 14px; font-weight: 700; color: var(--bt-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .hero-meta { font-size: 12px; color: var(--bt-text-2); white-space: nowrap; }
 .hero-price { color: var(--bt-brand); font-weight: 700; }
 .hero-sep { color: var(--bt-text-3); margin: 0 4px; }
 .hero-total { color: var(--bt-tea); font-weight: 700; }
+.hero-links { display: flex; gap: 8px; margin-top: 4px; }
+
+/* 商品图与链接 */
+.link { color: inherit; text-decoration: none; }
+.link:hover { color: var(--bt-brand); text-decoration: underline; }
+.hero-img-wrap {
+  position: relative; display: block; flex-shrink: 0;
+  width: 92px; height: 92px;
+  border-radius: var(--bt-r-md); overflow: hidden; background: var(--bt-muted);
+}
+.hero-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.img-ph { position: absolute; inset: 0; background: var(--bt-muted); }
+.thumb {
+  position: relative; display: block; flex-shrink: 0;
+  width: 64px; height: 64px;
+  border-radius: var(--bt-r-sm); overflow: hidden; background: var(--bt-muted);
+}
+.thumb-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.lnk {
+  font-size: 11px; font-weight: 600; color: var(--bt-brand);
+  border: 1px solid var(--bt-brand); border-radius: var(--bt-r-full);
+  padding: 3px 10px; text-decoration: none; white-space: nowrap;
+}
+.lnk:hover { background: var(--bt-brand); color: #fff; }
+.lnk.accent { color: var(--bt-tea); border-color: var(--bt-tea); }
+.lnk.accent:hover { background: var(--bt-tea); color: #fff; }
+.lnk-mini { font-size: 11px; font-weight: 600; text-decoration: none; margin-left: auto; white-space: nowrap; }
+.lnk-mini.accent { color: var(--bt-tea); }
+.lnk-mini:hover { text-decoration: underline; }
+
 .hero-grid { display: grid; grid-template-columns: 160px 1fr; gap: 12px; align-items: center; }
 .radar { display: block; }
 .aspect-table { width: 100%; font-size: 11px; border-collapse: collapse; }

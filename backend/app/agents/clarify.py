@@ -51,12 +51,11 @@ def clarify_node(state: GraphState) -> GraphState:
     """
     llm = get_llm()
 
-    # 获取最后一条用户消息
+    # 累积所有 HumanMessage（interrupt 多轮反问时，用户每次只答一部分，
+    # 必须把全部历史用户消息拼起来给 LLM，否则会丢上下文反复反问同一问题）
     user_msg = ""
-    for msg in reversed(state.get("messages", [])):
-        if isinstance(msg, HumanMessage):
-            user_msg = msg.content
-            break
+    history = [m.content for m in state.get("messages", []) if isinstance(m, HumanMessage)]
+    user_msg = "\n".join(history) if history else ""
 
     # 第一步：LLM 提取结构化需求
     extract_prompt = CLARIFY_PROMPT.format(user_message=user_msg)
@@ -76,11 +75,11 @@ def clarify_node(state: GraphState) -> GraphState:
         scenario=parsed.get("scenario"),
         budget_min=_to_decimal(parsed.get("budget_min")),
         budget_max=_to_decimal(parsed.get("budget_max")),
-        must_have=parsed.get("must_have", []),
-        nice_to_have=parsed.get("nice_to_have", []),
-        excluded=parsed.get("excluded", []),
+        must_have=parsed.get("must_have") or [],
+        nice_to_have=parsed.get("nice_to_have") or [],
+        excluded=parsed.get("excluded") or [],
         combo=bool(parsed.get("combo", False)),
-        slots=parsed.get("slots", []),
+        slots=parsed.get("slots") or [],
     )
 
     # 第二步：检查是否缺关键信息

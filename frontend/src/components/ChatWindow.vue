@@ -22,11 +22,18 @@
       </div>
     </div>
 
+    <!-- interrupt 提示条：agent 反问时在输入框上方明确提示用户补充 -->
+    <div v-if="chat.interrupt && !chat.streaming" class="ask-banner">
+      <i class="ask-icon"></i>
+      <span class="ask-text">{{ chat.interrupt.message }}</span>
+      <span class="ask-sub">请回答后点"补充并继续"</span>
+    </div>
+
     <div class="compose">
       <textarea
         v-model="text"
         class="compose-input"
-        placeholder="输入你的购物需求，如：我想买个降噪耳机，预算 500 以内"
+        :placeholder="chat.interrupt ? '请在这里回答上方补充问题...' : '输入你的购物需求，如：我想买个降噪耳机，预算 500 以内'"
         rows="2"
         @keydown.enter.ctrl.prevent="send"
         :disabled="chat.streaming"
@@ -34,7 +41,7 @@
       <div class="compose-actions">
         <span class="hint">Ctrl + Enter 发送</span>
         <button class="btn-send" :disabled="!text.trim() || chat.streaming" @click="send">
-          {{ chat.streaming ? "推理中" : "发送" }}
+          {{ chat.streaming ? "推理中..." : (chat.interrupt ? "补充并继续" : "发送") }}
         </button>
       </div>
     </div>
@@ -64,7 +71,12 @@ function send() {
   const t = text.value.trim();
   if (!t || chat.streaming) return;
   text.value = "";
-  chat.sendMessage(t);
+  // 若处于 interrupt 等待补充，则走 resume 继续已有线程
+  if (chat.interrupt) {
+    chat.resumeChat(t);
+  } else {
+    chat.sendMessage(t);
+  }
 }
 
 watch(() => chat.messages.length, async () => {
@@ -75,6 +87,18 @@ watch(() => chat.messages.length, async () => {
 </script>
 
 <style scoped>
+.ask-banner {
+  display: flex; align-items: center; gap: 8px;
+  margin: 8px 12px 0;
+  padding: 8px 12px;
+  background: rgba(45, 115, 184, 0.08);
+  border-left: 3px solid var(--bt-info);
+  border-radius: var(--bt-r-sm);
+  font-size: 12px; color: var(--bt-text);
+}
+.ask-icon { width: 8px; height: 8px; border-radius: 50%; background: var(--bt-info); flex-shrink: 0; }
+.ask-text { font-weight: 600; }
+.ask-sub { margin-left: auto; color: var(--bt-text-3); font-size: 11px; }
 .chat { display: flex; flex-direction: column; height: 100%; background: var(--bt-surface); }
 
 .chat-head {

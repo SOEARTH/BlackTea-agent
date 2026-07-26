@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from decimal import Decimal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 
 class ShoppingRequirement(BaseModel):
@@ -16,3 +16,9 @@ class ShoppingRequirement(BaseModel):
     excluded: list[str] = []
     combo: bool = False
     slots: list[str] = []
+
+    @field_validator("must_have", "nice_to_have", "excluded", "slots", mode="before")
+    @classmethod
+    def _none_to_list(cls, v):
+        # LLM 按 prompt 会对空列表输出 null，统一兜底成 []
+        return [] if v is None else v

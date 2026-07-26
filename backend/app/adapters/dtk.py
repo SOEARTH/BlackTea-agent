@@ -58,6 +58,9 @@ def _parse_goods_item(item: dict) -> NormalizedProduct:
         fetched_at=datetime.now(timezone.utc),
         extra={
             "raw": item,
+            # 大淘客数字商品 id：历史券后价等接口的入参要它，
+            # goodsId 是加密在线 id，price-trend 用它会查不到数据
+            "dtk_id": str(item.get("id") or ""),
             "sales_caption": "30天热销",
             "cid": item.get("cid"),
             "subcid": item.get("subcid"),
@@ -71,7 +74,13 @@ class TaobaoDtkAdapter:
     """大淘客适配器：纯函数风格，无网络依赖，单测直接喂 fixture。"""
 
     def parse_search(self, raw: dict) -> list[NormalizedProduct]:
-        items = raw.get("data", [])
+        # DTK 真实搜索响应：data 是 dict {"list":[...],"totalNum":N,...}
+        # 旧 fixture 样例：data 直接是 list。兼容两种结构。
+        data = raw.get("data", [])
+        if isinstance(data, dict):
+            items = data.get("list", [])
+        else:
+            items = data
         return [_parse_goods_item(i) for i in items]
 
     def parse_detail(self, raw: dict) -> NormalizedProduct:
@@ -79,7 +88,8 @@ class TaobaoDtkAdapter:
         return _parse_goods_item(item)
 
     def parse_price_trend(self, raw: dict) -> list[dict]:
-        hist = raw.get("data", {}).get("historicalPrice", [])
+        # 业务错误（如无历史数据 code=10006）时 data 是 JSON null
+        hist = (raw.get("data") or {}).get("historicalPrice", [])
         return [{"date": h.get("date"), "price": str(h.get("actualPrice"))} for h in hist]
 
     def parse_convert_link(self, raw: dict) -> dict:

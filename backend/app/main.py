@@ -12,6 +12,16 @@ from __future__ import annotations
 import logging
 from contextlib import asynccontextmanager
 
+import asyncio
+import sys
+
+# Windows 上 psycopg3 异步驱动不能在默认的 ProactorEventLoop 上运行，
+# uvicorn 在 Windows 默认用的也是 ProactorEventLoop，会导致连接 PG 时
+# 报 "Psycopg cannot use the 'ProactorEventLoop'..." 并让 lifespan 启动失败。
+# 这里在导入应用、创建事件循环之前，切换为 SelectorEventLoopPolicy。
+if sys.platform == "win32":
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 

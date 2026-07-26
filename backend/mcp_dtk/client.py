@@ -39,12 +39,17 @@ class DtkClient:
         return self._http
 
     def _sign(self, params: dict[str, str]) -> str:
-        """大淘客签名：appSecret + 升序拼接 kv + appSecret，MD5 大写。"""
-        sign_str = self.app_secret
-        for k in sorted(params):
-            sign_str += f"{k}{params[k]}"
-        sign_str += self.app_secret
-        return hashlib.md5(sign_str.encode()).hexdigest().upper()
+        """大淘客签名：参数按 key 升序排成 key=value&...，末尾追加 &key=appSecret，MD5 大写。
+
+        与 dtkApi 官方 SDK (dtkApi.apiRequest.Request.md5_sign) 算法一致：
+            sorted_params = sorted(params.items())
+            sign_str = '&'.join(f'{k}={v}' for k, v in sorted_params) + f'&key={app_secret}'
+            sign = md5(sign_str).upper()
+        """
+        sorted_items = sorted(params.items())
+        parts = [f"{k}={v}" for k, v in sorted_items]
+        sign_str = "&".join(parts) + f"&key={self.app_secret}"
+        return hashlib.md5(sign_str.encode("utf-8")).hexdigest().upper()
 
     async def request(self, api_name: str, biz_params: dict[str, Any]) -> dict:
         """发起请求并返回 JSON 响应。
@@ -68,8 +73,13 @@ class DtkClient:
             resp.raise_for_status()
             return resp.json()
         except Exception:
-            # 降级：尝试读 fixture
-            fixture_path = FIXTURES_DIR / api_name / "sample.json"
+            # 降级：尝试读 fixture（DTK 479 验签失败/超频时让前端仍能渲染带商品的报 告）
+            # 文件名按 API 分：search->sample_search.json, price_trend->sample_trend.json
+            fixture_name = {
+                "search": "sample_search.json",
+                "price_trend": "sample_trend.json",
+            }.get(api_name, "sample.json")
+            fixture_path = FIXTURES_DIR / api_name / fixture_name
             if fixture_path.exists():
                 return json.loads(fixture_path.read_text(encoding="utf-8"))
             raise

@@ -24,7 +24,6 @@
       <DecisionReport class="col-report" />
     </main>
 
-    <InterruptDialog />
   </div>
 </template>
 
@@ -32,7 +31,6 @@
 import ChatWindow from "./components/ChatWindow.vue";
 import AgentTimeline from "./components/AgentTimeline.vue";
 import DecisionReport from "./components/DecisionReport.vue";
-import InterruptDialog from "./components/InterruptDialog.vue";
 import { useChatStore } from "./stores/chat";
 
 const chat = useChatStore();
@@ -113,7 +111,12 @@ const NODE_LABELS = {
   display: grid;
   grid-template-columns: 440px 340px 1fr;
   min-height: 0;
+  /* 单行轨道钉死为容器高度，列内容再多也不许把整页撑出滚动条 */
+  grid-template-rows: minmax(0, 1fr);
+  overflow: hidden;
 }
+/* grid 子项默认可被内容撑大，显式允许收缩，让各列自己滚动 */
+.workbench > * { min-height: 0; }
 .col-chat { border-right: 1px solid var(--bt-border); }
 .col-rail { border-right: 1px solid var(--bt-border); }
 

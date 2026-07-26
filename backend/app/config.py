@@ -19,7 +19,8 @@ class Settings(BaseSettings):
     reranker_model: str = ""  # M3 再接，ollama 本地无 reranker
 
     # PostgreSQL
-    database_url: str = "postgresql://blacktea:blacktea@localhost:5432/blacktea"
+    # 注意：宿主机本地有原生 postgres 抢占 5432，Docker PG 映射到 5433
+    database_url: str = "postgresql://blacktea:blacktea@localhost:5433/blacktea"
 
     # Redis
     redis_url: str = "redis://localhost:6379/0"

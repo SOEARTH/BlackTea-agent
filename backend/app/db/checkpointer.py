@@ -28,6 +28,7 @@
 """
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
 from collections.abc import AsyncIterator
 
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
@@ -35,6 +36,7 @@ from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from app.config import settings
 
 
+@asynccontextmanager
 async def get_checkpointer() -> AsyncIterator[AsyncPostgresSaver]:
     """异步上下文管理器，yield 一个已连接的 AsyncPostgresSaver。
 
